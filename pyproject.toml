@@ -1,0 +1,72 @@
+[project]
+name = "big-data-bowl-2026-analytics"
+version = "0.1.0"
+authors = [
+    { name = "Miguel Duarte", email = "mdu97@hotmail.com" },
+]
+description = "Big Data Bowl 2026 (Analytics) submission."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "loguru>=0.7.3",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+]
+
+[project.optional-dependencies]
+commits = [
+    "pre-commit>=4.2.0",
+]
+notebooks = [
+    "ipykernel>=6.30.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.12.7",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # bugbear
+    "D",  # pydocstyle
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow imported but unused
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+docstring-code-format = true
+
+[tool.mypy]
+files = "src/**/*.py"
+disallow_untyped_calls = true
+strict = true
+warn_return_any = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
