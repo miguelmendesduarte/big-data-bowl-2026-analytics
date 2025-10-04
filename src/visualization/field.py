@@ -287,12 +287,3 @@ class FootballField:
             alpha=0.5,
         )
         self.ax.add_patch(triangle)
-
-
-if __name__ == "__main__":
-    from ..core.teams import TEAMS
-
-    team = TEAMS["HOU"]
-    field = FootballField(home_team=team)
-    fig, ax = field.create_field()
-    plt.show()
