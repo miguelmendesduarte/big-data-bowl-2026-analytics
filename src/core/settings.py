@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     DATA_DIR: Path = BASE_DIR / "data"
     RAW_DATA_DIR: Path = DATA_DIR / "raw"
     PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
+    ASSETS_DIR: Path = BASE_DIR / "assets"
+    LOGOS_DIR: Path = ASSETS_DIR / "logos"
 
     # Files
     RAW_PLAYS_FILE: Path = RAW_DATA_DIR / "supplementary_data.csv"
@@ -37,6 +39,7 @@ class Settings(BaseSettings):
     # Templates
     TRACKING_DATA_BEFORE_THROW_TEMPLATE: ClassVar[str] = "input_2023_w{week:02d}.csv"
     TRACKING_DATA_AFTER_THROW_TEMPLATE: ClassVar[str] = "output_2023_w{week:02d}.csv"
+    LOGO_FILE_TEMPLATE: ClassVar[str] = "{team}.png"
 
     # Variables
     NUM_WEEKS: int = Field(default=18, description="Number of weeks in the season.")
@@ -46,9 +49,7 @@ class Settings(BaseSettings):
     FRAME_RATE: int = Field(
         default=10, description="Frame rate for animations in frames per second."
     )
-    BITRATE: int = Field(
-        default=1800, description="Bitrate for video exports in kbps."
-    )
+    BITRATE: int = Field(default=1800, description="Bitrate for video exports in kbps.")
     FIELD_LENGTH: float = Field(
         default=120, description="Length of the field in yards."
     )
