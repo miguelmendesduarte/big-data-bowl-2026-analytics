@@ -21,7 +21,7 @@ class CSVReader(BaseReader):
             pd.DataFrame: Data read from CSV file.
         """
         logger.info(f"Reading data from {path}")
-        data = pd.read_csv(path)
+        data = pd.read_csv(path, low_memory=False)
 
         if self.limit is not None:
             data = data.head(self.limit)
