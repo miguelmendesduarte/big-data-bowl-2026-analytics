@@ -90,7 +90,7 @@ def create_plays_dataset() -> None:
         tracking_df_combined = pd.concat(all_tracking_data, ignore_index=True)
 
         merged_df = pd.merge(
-            plays_df, tracking_df_combined, on=["game_id", "play_id"], how="left"
+            plays_df, tracking_df_combined, on=["game_id", "play_id"], how="inner"
         )
         merged_df = merged_df.sort_values(by=["game_id", "play_id"], ascending=True)
         merged_df.reset_index(drop=True, inplace=True)
