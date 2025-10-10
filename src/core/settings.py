@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # Directories
     DATA_DIR: Path = BASE_DIR / "data"
     RAW_DATA_DIR: Path = DATA_DIR / "raw"
+    CLEANED_DATA_DIR: Path = DATA_DIR / "cleaned"
     PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
     ASSETS_DIR: Path = BASE_DIR / "assets"
     LOGOS_DIR: Path = ASSETS_DIR / "logos"

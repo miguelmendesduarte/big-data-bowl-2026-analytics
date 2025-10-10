@@ -2,8 +2,8 @@
 
 from loguru import logger
 
-from .config.logs import configure_logging
-from .config.settings import Settings
+from .core.logs import configure_logging
+from .core.settings import Settings
 
 
 def main() -> None:
