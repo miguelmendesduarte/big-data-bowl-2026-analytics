@@ -3,6 +3,7 @@
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import pandas as pd
+import typer
 from loguru import logger
 from matplotlib.animation import PillowWriter
 from matplotlib.artist import Artist
@@ -255,9 +256,31 @@ class Play:
             plt.show()
 
 
-if __name__ == "__main__":
-    game_id = 2025010505
-    play_id = 2161
+app = typer.Typer(help="Visualize a specific play from tracking data.")
 
-    play = Play(game_id=game_id, play_id=play_id, save=False)
+
+@app.command()
+def visualize_play(
+    game_id: int = typer.Option(..., help="Game ID of the play to visualize."),
+    play_id: int = typer.Option(..., help="Play ID of the play to visualize."),
+    save: bool = typer.Option(
+        False, help="Whether to save the animation as a GIF file."
+    ),
+) -> None:
+    """Visualize a specific play using tracking data.
+
+    This function loads tracking and play data for the given game and play ID,
+    and either displays or saves an animated visualization of the play.
+
+    Args:
+        game_id (int): Game ID of the play to visualize.
+        play_id (int): Play ID of the play to visualize.
+        save (bool): Whether to save the animation as a GIF file.
+            Default is False.
+    """
+    play = Play(game_id=game_id, play_id=play_id, save=save)
     play.animate()
+
+
+if __name__ == "__main__":
+    app()
