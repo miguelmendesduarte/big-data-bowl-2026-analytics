@@ -84,6 +84,22 @@ def create_plays_dataset() -> None:
             subset=["game_id", "play_id"], ignore_index=True
         )
 
+        right_to_left_plays = tracking_df[tracking_df.play_direction == "left"].copy()
+
+        right_to_left_plays["ball_land_x"] = (
+            settings.FIELD_LENGTH - right_to_left_plays["ball_land_x"]
+        )
+        right_to_left_plays["ball_land_y"] = (
+            settings.FIELD_WIDTH - right_to_left_plays["ball_land_y"]
+        )
+
+        right_to_left_plays["ball_land_x"] = right_to_left_plays["ball_land_x"].round(2)
+        right_to_left_plays["ball_land_y"] = right_to_left_plays["ball_land_y"].round(2)
+
+        tracking_df.loc[right_to_left_plays.index, ["ball_land_x", "ball_land_y"]] = (
+            right_to_left_plays[["ball_land_x", "ball_land_y"]]
+        )
+
         all_tracking_data.append(tracking_df)
 
     if all_tracking_data:
