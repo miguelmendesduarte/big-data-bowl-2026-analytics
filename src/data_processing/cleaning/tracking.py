@@ -59,9 +59,7 @@ def clean_tracking_data_before_snap() -> None:
             subset=["game_id", "play_id", "nfl_id", "frame_id"]
         )
 
-        output_path = (
-            settings.CLEANED_DATA_DIR / f"tracking_before_snap_w{week:02d}.csv"
-        )
+        output_path = settings.CLEANED_DATA_DIR / f"input_2023_w{week:02d}.csv"
         CSVWriter().write(merged_df, output_path)
 
 
@@ -98,7 +96,7 @@ def clean_tracking_data_after_snap() -> None:
             subset=["game_id", "play_id", "nfl_id", "frame_id"]
         )
 
-        output_path = settings.CLEANED_DATA_DIR / f"tracking_after_snap_w{week:02d}.csv"
+        output_path = settings.CLEANED_DATA_DIR / f"output_2023_w{week:02d}.csv"
         CSVWriter().write(merged_df, output_path)
 
 

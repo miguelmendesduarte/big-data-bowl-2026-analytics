@@ -36,6 +36,8 @@ class Settings(BaseSettings):
 
     # Files
     RAW_PLAYS_FILE: Path = RAW_DATA_DIR / "supplementary_data.csv"
+    CLEANED_PLAYS_FILE: Path = CLEANED_DATA_DIR / "plays.csv"
+    PLAYERS_FILE: Path = CLEANED_DATA_DIR / "players.csv"
 
     # Templates
     TRACKING_DATA_BEFORE_THROW_TEMPLATE: ClassVar[str] = "input_2023_w{week:02d}.csv"
@@ -87,14 +89,14 @@ class Settings(BaseSettings):
     def get_tracking_data_path(
         self,
         week: int,
-        data_stage: Literal["raw", "processed"] = "raw",
+        data_stage: Literal["raw", "cleaned", "processed"] = "raw",
         throw_stage: Literal["before", "after"] = "before",
     ) -> Path:
         """Get the path to a tracking data file.
 
         Args:
             week (int): Week number.
-            data_stage (Literal): "raw" or "processed".
+            data_stage (Literal): "raw", "cleaned", or "processed".
                 Default is "raw".
             throw_stage (Literal): "before" or "after".
                 Default is "before".
@@ -109,7 +111,11 @@ class Settings(BaseSettings):
         if not (1 <= week <= self.NUM_WEEKS):
             raise ValueError(f"Week must be between 1 and {self.NUM_WEEKS}.")
 
-        base_dir_map = {"raw": self.RAW_DATA_DIR, "processed": self.PROCESSED_DATA_DIR}
+        base_dir_map = {
+            "raw": self.RAW_DATA_DIR,
+            "cleaned": self.CLEANED_DATA_DIR,
+            "processed": self.PROCESSED_DATA_DIR,
+        }
 
         template_map = {
             "before": self.TRACKING_DATA_BEFORE_THROW_TEMPLATE,

@@ -3,66 +3,47 @@
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import pandas as pd
+from loguru import logger
 from matplotlib.animation import PillowWriter
 from matplotlib.artist import Artist
-from matplotlib.patches import Ellipse
 
 from ..core.settings import get_settings
 from ..core.teams import TEAMS, Team
+from ..io.datasets import CSVReader
 from .field import FootballField
 
 
 class Play:
     """Play class for visualizing a specific play in a game."""
 
-    def __init__(
-        self,
-        game_id: int,
-        play_id: int,
-        save: bool,
-        plays_data: pd.DataFrame,
-        tracking_data: pd.DataFrame,
-    ) -> None:
+    def __init__(self, game_id: int, play_id: int, save: bool) -> None:
         """Initialize the Play class.
 
         Args:
             game_id (int): Game ID.
             play_id (int): Play ID.
             save (bool): Whether to save the animation as a GIF.
-            plays_data (pd.DataFrame): DataFrame containing plays data.
-            tracking_data (pd.DataFrame): DataFrame containing tracking data.
         """
         self._settings = get_settings()
         self.game_id = game_id
         self.play_id = play_id
         self.home_team: Team | None = None
-        self.visitor_team: Team | None = None
-        self.field: FootballField | None = None
         self.save = save
-        self.plays_data = plays_data
-        self.tracking_data = tracking_data
 
-    def _init_field(self) -> None:
-        """Initialize the football field.
+    def _read_data(self) -> None:
+        """Read the necessary data for the play.
 
         Raises:
-            ValueError: If the home team is not set.
+            ValueError: If the game ID or play ID is not found in the plays data.
         """
-        if self.home_team is None:
-            raise ValueError("Home team is not set.")
-        self.field = FootballField(home_team=self.home_team)
+        reader = CSVReader()
 
-    def _set_teams(self) -> None:
-        """Set the home and visitor teams based on the plays data."""
-        self.home_team = TEAMS[self.plays_data["home_team_abbr"].iloc[0]]
-        self.visitor_team = TEAMS[self.plays_data["visitor_team_abbr"].iloc[0]]
+        self.plays_data = reader.read(self._settings.CLEANED_PLAYS_FILE)
+        self.plays_data = self.plays_data[
+            (self.plays_data["game_id"] == self.game_id)
+            & (self.plays_data["play_id"] == self.play_id)
+        ]
 
-    def animate(self) -> None:
-        """Animate the play.
-
-        Raises:
-            ValueError: If the game_id or play_id is not found in the plays data.
-        """
         if self.game_id not in self.plays_data["game_id"].values:
             raise ValueError(f"Game ID {self.game_id} not found in plays data.")
         if (
@@ -75,36 +56,84 @@ class Play:
                 f"Play ID {self.play_id} not found for Game ID {self.game_id}."
             )
 
-        tracking_data = self.tracking_data[
-            (self.tracking_data["game_id"] == self.game_id)
-            & (self.tracking_data["play_id"] == self.play_id)
-        ]
-        plays_data = self.plays_data[
-            (self.plays_data["game_id"] == self.game_id)
-            & (self.plays_data["play_id"] == self.play_id)
+        self.tracking_data_before = reader.read(
+            self._settings.get_tracking_data_path(
+                week=self.plays_data["week"].iloc[0],
+                data_stage="cleaned",
+                throw_stage="before",
+            )
+        )
+        self.tracking_data_before = self.tracking_data_before[
+            (self.tracking_data_before["game_id"] == self.game_id)
+            & (self.tracking_data_before["play_id"] == self.play_id)
         ]
 
-        self._set_teams()
+        self.tracking_data_after = reader.read(
+            self._settings.get_tracking_data_path(
+                week=self.plays_data["week"].iloc[0],
+                data_stage="cleaned",
+                throw_stage="after",
+            )
+        )
+        self.tracking_data_after = self.tracking_data_after[
+            (self.tracking_data_after["game_id"] == self.game_id)
+            & (self.tracking_data_after["play_id"] == self.play_id)
+        ]
+
+        max_frame_before = self.tracking_data_before["frame_id"].max()
+        self.tracking_data_after = self.tracking_data_after.copy()
+        self.tracking_data_after["frame_id"] += max_frame_before
+
+        self.tracking_data = pd.concat(
+            [self.tracking_data_before, self.tracking_data_after], ignore_index=True
+        ).sort_values(by="frame_id")
+
+    def _init_field(self) -> None:
+        """Initialize the football field.
+
+        Raises:
+            ValueError: If the home team is not set.
+        """
+        if self.home_team is None:
+            raise ValueError("Home team is not set.")
+        self.field = FootballField(home_team=self.home_team)
+
+    def _set_home_team(self) -> None:
+        """Set the home team based on the plays data."""
+        self.home_team = TEAMS[self.plays_data["home_team_abbr"].iloc[0]]
+
+    def animate(self) -> None:
+        """Animate the play."""
+        self._read_data()
+        self._set_home_team()
         self._init_field()
 
         if self.field is None:
             raise ValueError("Field is not initialized.")
-        fig, self.ax = self.field.create_field()
 
-        if tracking_data["play_direction"].iloc[0] == "left":
+        fig, ax = self.field.create_field()
+
+        if self.plays_data["play_direction"].iloc[0] == "left":
             line_of_scrimmage = (
                 self._settings.FIELD_LENGTH
-                - tracking_data["absolute_yardline_number"].iloc[0]
+                - self.plays_data["absolute_yardline_number"].iloc[0]
+                - 10
             )
         else:
-            line_of_scrimmage = tracking_data["absolute_yardline_number"].iloc[0]
+            line_of_scrimmage = self.plays_data["absolute_yardline_number"].iloc[0] - 10
 
-        first_down = line_of_scrimmage + plays_data["yards_to_go"].iloc[0]
-        # down = plays_data["down"].iloc[0]
-        # play_description = plays_data["play_description"].iloc[0]
+        first_down = line_of_scrimmage + self.plays_data["yards_to_go"].iloc[0]
+        down = self.plays_data["down"].iloc[0]
+        play_description = self.plays_data["play_description"].iloc[0]
+
+        logger.info(
+            f"Game ID: {self.game_id}, Play ID: {self.play_id}, Down: {down}, "
+            f"Line of Scrimmage: {line_of_scrimmage + 10}, First Down: {first_down}, "
+            f"Play Description: {play_description}"
+        )
 
         # Line of scrimmage
-        self.ax.plot(
+        ax.plot(
             (line_of_scrimmage + 10, line_of_scrimmage + 10),
             (0, self._settings.FIELD_WIDTH),
             color=self._settings.LINE_OF_SCRIMMAGE_COLOR,
@@ -114,7 +143,7 @@ class Play:
 
         # First down line (if not goal to go)
         if first_down < 110:
-            self.ax.plot(
+            ax.plot(
                 (first_down + 10, first_down + 10),
                 (0, self._settings.FIELD_WIDTH),
                 color=self._settings.FIRST_DOWN_LINE_COLOR,
@@ -122,14 +151,94 @@ class Play:
                 alpha=0.8,
             )
 
-        self.player_scatter: list[Artist] = []
-        self.player_texts: list[Artist] = []
-        self.ball_ellipse: Ellipse | None = None
+        # Ball landing position
+        ball_x = self.plays_data["ball_land_x"].iloc[0]
+        ball_y = self.plays_data["ball_land_y"].iloc[0]
+        ax.text(
+            ball_x,
+            ball_y,
+            "X",
+            fontsize=12,
+            fontweight="bold",
+            color="red",
+            ha="center",
+            va="center",
+            zorder=4,
+        )
+
+        player_scatter: list[Artist] = []
+        player_texts: list[Artist] = []
+        ball_ellipse = None
+
+        def update(frame: int) -> list[Artist]:
+            """Update the animation.
+
+            Args:
+                frame (int): Frame number.
+
+            Returns:
+                list[Artist]: List of artists updated.
+            """
+            nonlocal player_scatter, ball_ellipse, player_texts
+            for scatter in player_scatter:
+                scatter.remove()
+            player_scatter = []
+
+            for text in player_texts:
+                text.remove()
+            player_texts = []
+
+            if ball_ellipse is not None:
+                ball_ellipse.remove()
+
+            current_frame_data = self.tracking_data[
+                self.tracking_data.frame_id == frame
+            ]
+
+            # Players
+            for _, row in current_frame_data.iterrows():
+                x = row.x
+                y = row.y
+                team = row.team
+                team_color = (
+                    (TEAMS[team].primary_color, TEAMS[team].secondary_color)
+                    if team in TEAMS
+                    else ("#FFFFFF", "#000000")
+                )
+                jersey_number = row["nfl_id"] % 100  # Temporary workaround
+
+                scatter = ax.scatter(
+                    x,
+                    y,
+                    s=110,
+                    facecolor=team_color[0],
+                    edgecolor=team_color[1],
+                    linewidth=1,
+                    zorder=2,
+                )
+                text = ax.text(
+                    x,
+                    y,
+                    f"{int(jersey_number)}",
+                    color=team_color[1],
+                    ha="center",
+                    va="center",
+                    fontsize=5,
+                    fontweight="bold",
+                    zorder=3,
+                )
+
+                player_scatter.append(scatter)
+                player_texts.append(text)
+
+            return (
+                player_scatter + player_texts + ([ball_ellipse] if ball_ellipse else [])
+            )
 
         ani = animation.FuncAnimation(
             fig,
-            self._update_frame,
-            frames=sorted(tracking_data["frame_id"].unique()),
+            update,
+            frames=sorted(self.tracking_data["frame_id"].unique()),
             interval=100,
             repeat=True,
             repeat_delay=1000,
@@ -145,118 +254,10 @@ class Play:
         else:
             plt.show()
 
-    def _update_frame(self, frame: int) -> list[Artist]:
-        tracking_data_for_frame = self.tracking_data[
-            (self.tracking_data["game_id"] == self.game_id)
-            & (self.tracking_data["play_id"] == self.play_id)
-            & (self.tracking_data["frame_id"] == frame)
-        ]
-        player_data_for_frame = tracking_data_for_frame[
-            ~tracking_data_for_frame["nfl_id"].isna()
-        ]
-        ball_data_for_frame = tracking_data_for_frame[
-            tracking_data_for_frame["nfl_id"].isna()
-        ]
-
-        for scatter in self.player_scatter:
-            scatter.remove()
-        self.player_scatter.clear()
-
-        for text in self.player_texts:
-            text.remove()
-        self.player_texts.clear()
-
-        if self.ball_ellipse:
-            self.ball_ellipse.remove()
-            self.ball_ellipse = None
-
-        # Update the ball position
-        if not ball_data_for_frame.empty:
-            ball_x = ball_data_for_frame.x.values[0] + 0.31
-            ball_y = ball_data_for_frame.y.values[0]
-
-            # Create and store the ball patch so it can be removed on the
-            # next frame. The FuncAnimation callback must return the
-            # artists that were updated.
-            self.ball_ellipse = Ellipse(
-                xy=(ball_x, ball_y),
-                width=0.8,
-                height=0.5,
-                facecolor=self._settings.BALL_COLOR,
-                edgecolor="black",
-                linewidth=1,
-                zorder=4,
-            )
-            self.ax.add_patch(self.ball_ellipse)
-
-        # Update player positions
-        for _, player in player_data_for_frame.iterrows():
-            x = player["x"]
-            y = player["y"]
-            if self.home_team is None or self.visitor_team is None:
-                raise ValueError("Teams are not set.")
-            team_color = (
-                (self.home_team.primary_color, self.home_team.secondary_color)
-                if player["player_side"] == "Defense"  # This is wrong, change later
-                else (
-                    self.visitor_team.primary_color,
-                    self.visitor_team.secondary_color,
-                )
-            )
-            # jersey_number = player["jersey_number"] # Not available this year
-            jersey_number = player["nfl_id"] % 100  # Temporary workaround
-
-            # Plot player position
-            scatter = self.ax.scatter(
-                x,
-                y,
-                s=110,
-                facecolor=team_color[0],
-                edgecolor=team_color[1],
-                linewidth=1,
-                zorder=2,
-            )
-
-            text = self.ax.text(
-                x,
-                y,
-                f"{int(jersey_number)}",
-                color=team_color[1],
-                ha="center",
-                va="center",
-                fontsize=5,
-                fontweight="bold",
-                zorder=3,
-            )
-
-            # Store references to the player markers and text
-            self.player_scatter.append(scatter)
-            self.player_texts.append(text)
-
-        return (
-            self.player_scatter
-            + self.player_texts
-            + ([self.ball_ellipse] if self.ball_ellipse else [])
-        )
-
 
 if __name__ == "__main__":
-    plays_data = pd.read_csv("data/raw/supplementary_data.csv", low_memory=False)
-    tracking_data = pd.read_csv("data/raw/input_2023_w01.csv", low_memory=False)
-    ball_data = tracking_data[tracking_data["nfl_id"].isna()]
+    game_id = 2025010505
+    play_id = 2161
 
-    play = Play(
-        game_id=2023090700,
-        play_id=877,
-        save=False,
-        plays_data=plays_data,
-        tracking_data=tracking_data,
-    )
+    play = Play(game_id=game_id, play_id=play_id, save=False)
     play.animate()
-
-    # print("Is there any ball position available?")
-    # print("Yes" if tracking_data["nfl_id"].isna().any() else "No")
-
-    tracking_data = pd.read_csv("data/raw/output_2023_w01.csv", low_memory=False)
-    print("Is there any ball position available?")
-    print("Yes" if tracking_data["nfl_id"].isna().any() else "No")
