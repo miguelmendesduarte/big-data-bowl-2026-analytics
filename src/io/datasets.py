@@ -20,7 +20,7 @@ class CSVReader(BaseReader):
         Returns:
             pd.DataFrame: Data read from CSV file.
         """
-        logger.info(f"Reading data from {path}")
+        logger.debug(f"Reading data from {path}")
         data = pd.read_csv(path, low_memory=False)
 
         if self.limit is not None:
@@ -39,5 +39,5 @@ class CSVWriter(BaseWriter):
             data (pd.DataFrame): Data to write.
             path (Path): Path to CSV file.
         """
-        logger.info(f"Writing data to {path}")
+        logger.debug(f"Writing data to {path}")
         data.to_csv(path, index=False)
