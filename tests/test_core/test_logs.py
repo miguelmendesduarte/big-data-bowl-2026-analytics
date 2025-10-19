@@ -15,7 +15,7 @@ from src.core.settings import LogLevel, Settings
 @pytest.fixture
 def mock_logger(mocker: MockerFixture) -> Generator[MagicMock, None, None]:
     """Fixture to patch and return the mock logger."""
-    return mocker.patch("src.backend.core.logs.logger")
+    return mocker.patch("src.core.logs.logger")
 
 
 def test_configure_logging_stdout_only(mock_logger: MagicMock) -> None:
