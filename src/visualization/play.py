@@ -2,14 +2,17 @@
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import typer
 from loguru import logger
 from matplotlib.animation import PillowWriter
 from matplotlib.artist import Artist
+from matplotlib.patches import Ellipse
 
 from ..core.settings import get_settings
 from ..core.teams import TEAMS, Team
+from ..data_processing.cleaning.tracking import convert_plays_left_to_right
 from ..io.datasets import CSVReader
 from .field import FootballField
 
@@ -69,6 +72,49 @@ class Play:
             & (self.tracking_data_before["play_id"] == self.play_id)
         ]
 
+        qb_tracking = reader.read(
+            self._settings.get_tracking_data_path(
+                week=self.plays_data["week"].iloc[0],
+                data_stage="raw",
+                throw_stage="before",
+            )
+        )
+        qb_tracking = qb_tracking[
+            (qb_tracking["game_id"] == self.game_id)
+            & (qb_tracking["play_id"] == self.play_id)
+            & (qb_tracking["player_role"] == "Passer")
+        ]
+
+        targeted_receiver = self.tracking_data_before[
+            self.tracking_data_before["player_role"] == "Targeted Receiver"
+        ]
+        receiver_team = targeted_receiver["team"].iloc[0]
+        qb_tracking["team"] = receiver_team
+        qb_tracking = qb_tracking.loc[
+            :,
+            [
+                "game_id",
+                "play_id",
+                "nfl_id",
+                "frame_id",
+                "play_direction",
+                "player_name",
+                "player_position",
+                "player_side",
+                "player_role",
+                "x",
+                "y",
+                "team",
+            ],
+        ]
+
+        qb_tracking = convert_plays_left_to_right(qb_tracking)
+
+        combined_data = pd.concat(
+            [self.tracking_data_before, qb_tracking], axis=0, ignore_index=True
+        )
+        self.tracking_data_before = combined_data
+
         self.tracking_data_after = reader.read(
             self._settings.get_tracking_data_path(
                 week=self.plays_data["week"].iloc[0],
@@ -89,6 +135,36 @@ class Play:
             [self.tracking_data_before, self.tracking_data_after], ignore_index=True
         ).sort_values(by="frame_id")
 
+    def _compute_ball_position(self) -> None:
+        """Compute the ball position for each frame."""
+        ball_positions_before = self.tracking_data_before[
+            self.tracking_data_before["player_role"] == "Passer"
+        ][["frame_id", "x", "y"]]
+
+        ball_land_x, ball_land_y = self.plays_data[["ball_land_x", "ball_land_y"]].iloc[
+            0
+        ]
+
+        ball_positions_after = pd.DataFrame(
+            {
+                "frame_id": self.tracking_data_after["frame_id"].unique(),
+                "x": np.linspace(
+                    ball_positions_before["x"].iloc[-1],
+                    ball_land_x,
+                    len(self.tracking_data_after["frame_id"].unique()),
+                ),
+                "y": np.linspace(
+                    ball_positions_before["y"].iloc[-1],
+                    ball_land_y,
+                    len(self.tracking_data_after["frame_id"].unique()),
+                ),
+            }
+        )
+
+        self.ball_positions = pd.concat(
+            [ball_positions_before, ball_positions_after], ignore_index=True
+        )
+
     def _init_field(self) -> None:
         """Initialize the football field.
 
@@ -108,6 +184,7 @@ class Play:
         self._read_data()
         self._set_home_team()
         self._init_field()
+        self._compute_ball_position()
 
         if self.field is None:
             raise ValueError("Field is not initialized.")
@@ -195,6 +272,23 @@ class Play:
             current_frame_data = self.tracking_data[
                 self.tracking_data.frame_id == frame
             ]
+            ball_data = self.ball_positions[self.ball_positions.frame_id == frame]
+
+            # Ball
+            if not ball_data.empty:
+                ball_x = ball_data.x.values[0] + 0.31
+                ball_y = ball_data.y.values[0]
+
+                ball_ellipse = Ellipse(
+                    xy=(ball_x, ball_y),
+                    width=0.8,
+                    height=0.5,
+                    facecolor=self._settings.BALL_COLOR,
+                    edgecolor="black",
+                    linewidth=1,
+                    zorder=4,
+                )
+                ax.add_patch(ball_ellipse)
 
             # Players
             for _, row in current_frame_data.iterrows():
