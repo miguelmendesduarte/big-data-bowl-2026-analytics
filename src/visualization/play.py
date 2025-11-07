@@ -206,7 +206,7 @@ class Play:
 
         logger.info(
             f"Game ID: {self.game_id}, Play ID: {self.play_id}, Down: {down}, "
-            f"Line of Scrimmage: {line_of_scrimmage + 10}, First Down: {first_down}, "
+            f"Line of Scrimmage: {line_of_scrimmage}, First Down: {first_down}, "
             f"Play Description: {play_description}"
         )
 
