@@ -128,7 +128,15 @@ class Settings(BaseSettings):
         full_path = base_dir / template.format(week=week)
 
         if not full_path.exists():
-            raise FileNotFoundError(f"File does not exist: {full_path}")
+            # Create parent directories if they don't exist
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+
+            try:
+                full_path.touch(exist_ok=True)  # Creates the file if it doesn't exist
+            except Exception as e:
+                raise FileNotFoundError(
+                    f"File could not be created: {full_path}."
+                ) from e
 
         return full_path
 
