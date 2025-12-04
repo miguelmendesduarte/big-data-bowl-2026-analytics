@@ -218,7 +218,7 @@ def process_plays_data(
     plays_df = (
         plays_df.pipe(filter_plays_columns)
         .pipe(filter_receiver_routes)
-        .pipe(filter_by_defensive_coverage)
+        # .pipe(filter_by_defensive_coverage)
         .pipe(add_tracking_columns)
         .pipe(adjust_ball_landing_positions)
         .sort_values(by=["game_id", "play_id"])
