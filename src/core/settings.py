@@ -46,6 +46,7 @@ class Settings(BaseSettings):
 
     # Variables
     NUM_WEEKS: int = Field(default=18, description="Number of weeks in the season.")
+    DB_POSITIONS: list[str] = ["CB", "DB", "FS", "SS"]
     FIGURE_SIZE: tuple[int, int] = Field(
         default=(12, 6), description="Size of the output figure in inches."
     )
