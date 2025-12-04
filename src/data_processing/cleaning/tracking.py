@@ -266,73 +266,191 @@ def sync_players_across_stages(
     return synced
 
 
-def filter_plays_with_no_defenders_or_receiver() -> None:
-    """Summary."""
-    pass
+def get_plays_with_one_receiver_and_one_db(df: pd.DataFrame) -> pd.DataFrame:
+    """Filter tracking data for 1-on-1 plays (targeted receiver vs. defensive back).
 
-
-def get_closest_defender(after_throw_df: pd.DataFrame) -> pd.DataFrame:
-    """Find the closest defender to receiver in the last frame of each play.
-
-    Optimized and vectorized implementation, handling missing defenders gracefully.
+    A Defensive Back (DB) is defined by player_position being in DB_POSITIONS.
 
     Args:
-        after_throw_df (pd.DataFrame): Tracking data after the throw.
+        df: The input DataFrame containing tracking data.
 
     Returns:
-        pd.DataFrame: After throw tracking data with closest defender added.
+        A DataFrame containing the tracking data for plays that meet the criteria.
     """
-    defenders_df = after_throw_df[after_throw_df["player_role"] == "Defensive Coverage"]
+    plays = df[["game_id", "play_id"]].drop_duplicates()
 
-    last_frame_df = (
-        after_throw_df.groupby(["game_id", "play_id"])["frame_id"].max().reset_index()
+    receiver_counts = (
+        df[df["player_role"] == "Targeted Receiver"]
+        .groupby(["game_id", "play_id"])["nfl_id"]
+        .nunique()
+        .reset_index(name="receiver_count")
     )
-    last_frame_df = pd.merge(
-        after_throw_df, last_frame_df, on=["game_id", "play_id", "frame_id"]
-    )
-
-    closest_defenders = []
-    for (game_id, play_id), group in last_frame_df.groupby(["game_id", "play_id"]):
-        receiver_group = group[group["player_role"] == "Targeted Receiver"]
-
-        receiver_position = receiver_group[["x", "y"]].values[0]
-
-        play_defenders = defenders_df[
-            (defenders_df["game_id"].astype(int) == game_id)
-            & (defenders_df["play_id"].astype(int) == play_id)
+    db_counts = (
+        df[
+            (df["player_side"] == "Defense")
+            & (df["player_position"].isin(settings.DB_POSITIONS))
         ]
-
-        if play_defenders.empty:
-            continue
-
-        defender_positions = play_defenders[["x", "y"]].values
-        distances = np.linalg.norm(defender_positions - receiver_position, axis=1)
-
-        closest_defender_idx = distances.argmin()
-        closest_defender = play_defenders.iloc[closest_defender_idx]
-
-        closest_defenders.append(
-            {
-                "game_id": game_id,
-                "play_id": play_id,
-                "receiver_nfl_id": receiver_group["nfl_id"].values[0],
-                "defender_nfl_id": closest_defender["nfl_id"],
-            }
-        )
-
-    closest_defenders_df = pd.DataFrame(closest_defenders)
-
-    filtered_df = pd.merge(
-        after_throw_df, closest_defenders_df, on=["game_id", "play_id"], how="inner"
+        .groupby(["game_id", "play_id"])["nfl_id"]
+        .nunique()
+        .reset_index(name="db_count")
     )
 
-    filtered_df = filtered_df[
-        (filtered_df["nfl_id"] == filtered_df["receiver_nfl_id"])
-        | (filtered_df["nfl_id"] == filtered_df["defender_nfl_id"])
-    ]
-    filtered_df = filtered_df.drop(columns=["receiver_nfl_id", "defender_nfl_id"])
+    play_counts = pd.merge(
+        plays, receiver_counts, on=["game_id", "play_id"], how="left"
+    )
+    play_counts = pd.merge(
+        play_counts, db_counts, on=["game_id", "play_id"], how="left"
+    )
 
-    return filtered_df
+    play_counts["receiver_count"] = play_counts["receiver_count"].fillna(0)
+    play_counts["db_count"] = play_counts["db_count"].fillna(0)
+
+    # Keep only plays with exactly one receiver and one DB
+    filtered_plays_keys = play_counts[
+        (play_counts["receiver_count"] == 1) & (play_counts["db_count"] == 1)
+    ][["game_id", "play_id"]]
+
+    final_df = pd.merge(df, filtered_plays_keys, on=["game_id", "play_id"], how="inner")
+
+    return final_df
+
+
+def filter_plays_by_ball_landing_distance(
+    tracking_df: pd.DataFrame, plays_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Filter plays where the ball landing spot is <3 yards of the receiver or defender.
+
+    Args:
+        tracking_df: DataFrame with tracking data for the receiver/defender pair,
+            usually from get_closest_defender.
+        plays_df: DataFrame with ball landing coordinates.
+
+    Returns:
+        A DataFrame with tracking data that meet the ball landing distance criteria.
+    """
+    # Identify the last frame for each play
+    last_frame_keys = (
+        tracking_df.groupby(["game_id", "play_id"])["frame_id"].max().reset_index()
+    )
+    last_pos_df = pd.merge(
+        tracking_df, last_frame_keys, on=["game_id", "play_id", "frame_id"], how="inner"
+    )
+
+    last_pos_pivot = last_pos_df.pivot_table(
+        index=["game_id", "play_id"],
+        columns="player_side",
+        values=["x", "y"],
+        aggfunc="first",  # We expect max one of each side per play/frame
+    ).reset_index()
+
+    last_pos_pivot.columns = [
+        "_".join(str(c) for c in col).strip("_")
+        for col in last_pos_pivot.columns.values
+    ]
+
+    last_pos_pivot = last_pos_pivot.rename(
+        columns={
+            "x_Offense": "x_rec_last",
+            "y_Offense": "y_rec_last",
+            "x_Defense": "x_def_last",
+            "y_Defense": "y_def_last",
+        }
+    )
+
+    merged_with_ball = pd.merge(
+        last_pos_pivot,
+        plays_df[["game_id", "play_id", "ball_land_x", "ball_land_y"]],
+        on=["game_id", "play_id"],
+        how="inner",
+    )
+
+    # Euclidean distance formula: sqrt((x2-x1)^2 + (y2-y1)^2)
+    merged_with_ball["dist_rec_to_ball"] = np.sqrt(
+        (merged_with_ball["x_rec_last"] - merged_with_ball["ball_land_x"]) ** 2
+        + (merged_with_ball["y_rec_last"] - merged_with_ball["ball_land_y"]) ** 2
+    )
+    merged_with_ball["dist_def_to_ball"] = np.sqrt(
+        (merged_with_ball["x_def_last"] - merged_with_ball["ball_land_x"]) ** 2
+        + (merged_with_ball["y_def_last"] - merged_with_ball["ball_land_y"]) ** 2
+    )
+
+    # Keep play if distance to receiver < 3 OR distance to defender < 3
+    plays_to_keep = merged_with_ball[
+        (merged_with_ball["dist_rec_to_ball"] < 3)
+        | (merged_with_ball["dist_def_to_ball"] < 3)
+    ][["game_id", "play_id"]]
+
+    final_filtered_tracking_df = pd.merge(
+        tracking_df, plays_to_keep, on=["game_id", "play_id"], how="inner"
+    )
+
+    return final_filtered_tracking_df
+
+
+def get_closest_defender(df: pd.DataFrame) -> pd.DataFrame:
+    """Get the defensive player with lowest mean distance to the receiver.
+
+    Args:
+        df: The input DataFrame containing tracking data.
+
+    Returns:
+        A DataFrame containing only the tracking data rows for the closest
+            defender(s) for each unique game_id/play_id combination.
+    """
+    receiver_data_full = df[df["player_role"] == "Targeted Receiver"].copy()
+
+    receiver_coords = receiver_data_full[
+        ["game_id", "play_id", "frame_id", "x", "y"]
+    ].rename(columns={"x": "x_rec", "y": "y_rec"})
+
+    defenders_data = df[df["player_side"] == "Defense"].copy()
+
+    merged_df = pd.merge(
+        defenders_data,
+        receiver_coords,
+        on=["game_id", "play_id", "frame_id"],
+        how="inner",
+    )
+
+    merged_df["distance"] = np.sqrt(
+        (merged_df["x"] - merged_df["x_rec"]) ** 2
+        + (merged_df["y"] - merged_df["y_rec"]) ** 2
+    )
+
+    mean_distance_df = (
+        merged_df.groupby(["game_id", "play_id", "nfl_id"])["distance"]
+        .mean()
+        .reset_index(name="mean_distance")
+    )
+
+    closest_defender_indices = mean_distance_df.loc[
+        mean_distance_df.groupby(["game_id", "play_id"])["mean_distance"].idxmin()
+    ]
+
+    closest_defenders_keys = closest_defender_indices[["game_id", "play_id", "nfl_id"]]
+
+    closest_defender_df = pd.merge(
+        defenders_data,
+        closest_defenders_keys,
+        on=["game_id", "play_id", "nfl_id"],
+        how="inner",
+    )
+
+    final_filtered_df = pd.concat(
+        [closest_defender_df, receiver_data_full], ignore_index=True
+    )
+
+    final_filtered_df = final_filtered_df.sort_values(
+        ["game_id", "play_id", "frame_id", "player_side"],
+        ascending=[
+            True,
+            True,
+            True,
+            False,
+        ],  # Defense comes after Offense in string sort, so False pushes it up
+    )
+
+    return final_filtered_df
 
 
 def clean_tracking_data() -> None:
@@ -343,6 +461,8 @@ def clean_tracking_data() -> None:
     """
     reader = CSVReader()
     writer = CSVWriter()
+
+    plays_df = CSVReader().read(settings.CLEANED_PLAYS_FILE)
 
     for week in range(1, settings.NUM_WEEKS + 1):
         logger.info(f"Cleaning tracking data for week {week}...")
@@ -386,6 +506,14 @@ def clean_tracking_data() -> None:
         after_with_before = convert_plays_left_to_right(after_with_before)
         after_with_before = add_player_info(after_with_before)
         after_with_before = add_team_info(after_with_before)
+
+        after_with_before = get_plays_with_one_receiver_and_one_db(after_with_before)
+        after_with_before = filter_plays_by_ball_landing_distance(
+            after_with_before, plays_df
+        )
+        filtered_before = filter_before_throw_to_after_throw_players(
+            filtered_before, after_with_before
+        )
 
         # Save cleaned data
         cleaned_before_path = settings.get_tracking_data_path(week, "cleaned", "before")
