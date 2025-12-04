@@ -46,6 +46,7 @@ class Settings(BaseSettings):
 
     # Variables
     NUM_WEEKS: int = Field(default=18, description="Number of weeks in the season.")
+    DB_POSITIONS: list[str] = ["CB", "DB", "FS", "SS"]
     FIGURE_SIZE: tuple[int, int] = Field(
         default=(12, 6), description="Size of the output figure in inches."
     )
@@ -127,7 +128,15 @@ class Settings(BaseSettings):
         full_path = base_dir / template.format(week=week)
 
         if not full_path.exists():
-            raise FileNotFoundError(f"File does not exist: {full_path}")
+            # Create parent directories if they don't exist
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+
+            try:
+                full_path.touch(exist_ok=True)  # Creates the file if it doesn't exist
+            except Exception as e:
+                raise FileNotFoundError(
+                    f"File could not be created: {full_path}."
+                ) from e
 
         return full_path
 
