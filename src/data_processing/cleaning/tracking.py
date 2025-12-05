@@ -480,13 +480,17 @@ def clean_tracking_data() -> None:
             logger.error(f"Error reading data for week {week}: {e}")
             continue
 
+        qb_df = before_throw_df[before_throw_df["player_role"] == "Passer"].copy()
+        qb_df = qb_df[TRACKING_COLS_BEFORE_throw]
+        qb_df = add_player_info(qb_df)
+        qb_df = add_team_info(qb_df)
+
         before_throw_df = filter_before_throw_to_after_throw_players(
             before_throw_df, after_throw_df
         )
 
         # Process before_throw
         filtered_before = filter_before_throw(before_throw_df)
-        filtered_before = convert_plays_left_to_right(filtered_before)
         filtered_before = add_player_info(filtered_before)
         filtered_before = add_team_info(filtered_before)
 
@@ -514,6 +518,23 @@ def clean_tracking_data() -> None:
         filtered_before = filter_before_throw_to_after_throw_players(
             filtered_before, after_with_before
         )
+
+        filtered_before = pd.concat([filtered_before, qb_df], ignore_index=True)
+        filtered_before = filtered_before[
+            filtered_before.groupby(["game_id", "play_id"])["player_role"].transform(
+                "nunique"
+            )
+            == 3
+        ].copy()
+        filtered_before = filtered_before.sort_values(
+            ["game_id", "play_id", "frame_id"],
+            ascending=[
+                True,
+                True,
+                True,
+            ],
+        )
+        filtered_before = convert_plays_left_to_right(filtered_before)
 
         # Save cleaned data
         cleaned_before_path = settings.get_tracking_data_path(week, "cleaned", "before")

@@ -40,4 +40,8 @@ class CSVWriter(BaseWriter):
             path (Path): Path to CSV file.
         """
         logger.debug(f"Writing data to {path}")
+
+        parent_dir = path.parent
+        parent_dir.mkdir(parents=True, exist_ok=True)
+
         data.to_csv(path, index=False)

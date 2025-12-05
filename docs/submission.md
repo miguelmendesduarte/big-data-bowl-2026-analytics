@@ -1,4 +1,4 @@
-# Second Chances: Quantifying Post-Throw Recovery from Deceptive Routes
+# Second Chances: Quantifying Post-Throw Recovery After Deceptive Routes
 
 Broadcast Visualization Track | [Miguel Duarte](https://github.com/miguelmendesduarte)
 
@@ -19,10 +19,6 @@ Broadcast Visualization Track | [Miguel Duarte](https://github.com/miguelmendesd
 ...
 
 ## Conclusion
-
-...
-
-### Future Work
 
 ...
 

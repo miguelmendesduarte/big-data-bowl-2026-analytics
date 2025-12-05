@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     RAW_DATA_DIR: Path = DATA_DIR / "raw"
     CLEANED_DATA_DIR: Path = DATA_DIR / "cleaned"
     PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
+    TRAINING_DATA_DIR: Path = PROCESSED_DATA_DIR / "training"
     ASSETS_DIR: Path = BASE_DIR / "assets"
     LOGOS_DIR: Path = ASSETS_DIR / "logos"
 
@@ -38,6 +39,8 @@ class Settings(BaseSettings):
     RAW_PLAYS_FILE: Path = RAW_DATA_DIR / "supplementary_data.csv"
     CLEANED_PLAYS_FILE: Path = CLEANED_DATA_DIR / "plays.csv"
     PLAYERS_FILE: Path = CLEANED_DATA_DIR / "players.csv"
+    TRAIN_DATA_FILE: Path = TRAINING_DATA_DIR / "train.csv"
+    TEST_DATA_FILE: Path = TRAINING_DATA_DIR / "test.csv"
 
     # Templates
     TRACKING_DATA_BEFORE_THROW_TEMPLATE: ClassVar[str] = "input_2023_w{week:02d}.csv"
@@ -46,6 +49,7 @@ class Settings(BaseSettings):
 
     # Variables
     NUM_WEEKS: int = Field(default=18, description="Number of weeks in the season.")
+    NUM_TRAIN_WEEKS: int = Field(default=9, description="Number of weeks for training.")
     DB_POSITIONS: list[str] = ["CB", "DB", "FS", "SS"]
     FIGURE_SIZE: tuple[int, int] = Field(
         default=(12, 6), description="Size of the output figure in inches."
