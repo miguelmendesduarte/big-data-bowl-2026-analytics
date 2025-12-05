@@ -491,7 +491,6 @@ def clean_tracking_data() -> None:
 
         # Process before_throw
         filtered_before = filter_before_throw(before_throw_df)
-        filtered_before = convert_plays_left_to_right(filtered_before)
         filtered_before = add_player_info(filtered_before)
         filtered_before = add_team_info(filtered_before)
 
@@ -535,6 +534,7 @@ def clean_tracking_data() -> None:
                 True,
             ],
         )
+        filtered_before = convert_plays_left_to_right(filtered_before)
 
         # Save cleaned data
         cleaned_before_path = settings.get_tracking_data_path(week, "cleaned", "before")
