@@ -44,7 +44,7 @@ def build_xgb_model(
     if not (0 < colsample_bytree <= 1):
         raise ValueError("colsample_bytree must be in the interval ]0, 1].")
 
-    return xgb.XGBClassifier(
+    model: Model = xgb.XGBClassifier(
         n_estimators=n_estimators,
         learning_rate=learning_rate,
         max_depth=max_depth,
@@ -54,3 +54,5 @@ def build_xgb_model(
         random_state=random_state,
         eval_metric="auc",
     )
+
+    return model
