@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     PLAYERS_FILE: Path = CLEANED_DATA_DIR / "players.csv"
     TRAIN_DATA_FILE: Path = TRAINING_DATA_DIR / "train.csv"
     TEST_DATA_FILE: Path = TRAINING_DATA_DIR / "test.csv"
+    INFERENCE_DATA_FILE: Path = PROCESSED_DATA_DIR / "inference" / "inference.csv"
 
     # Templates
     TRACKING_DATA_BEFORE_THROW_TEMPLATE: ClassVar[str] = "input_2023_w{week:02d}.csv"
