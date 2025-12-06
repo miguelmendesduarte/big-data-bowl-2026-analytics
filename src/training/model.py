@@ -53,5 +53,4 @@ def build_xgb_model(
         reg_lambda=reg_lambda,
         random_state=random_state,
         eval_metric="auc",
-        use_label_encoder=False,
     )
