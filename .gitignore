@@ -175,3 +175,7 @@ cython_debug/
 
 # Large data files
 data/**/*.csv
+
+# MLflow artifacts
+mlruns/
+mlflow.db

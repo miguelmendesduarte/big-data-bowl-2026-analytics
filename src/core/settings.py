@@ -3,7 +3,7 @@
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import ClassVar, Literal
+from typing import Any, ClassVar, Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -90,6 +90,26 @@ class Settings(BaseSettings):
     LOG_FILE: Path | None = Field(
         default=None,
         description="File path for logging. If None, logs won't be written to a file.",
+    )
+
+    # XGBoost Hyperparameters
+    MLFLOW_EXPERIMENT_NAME: str = Field(
+        default="non_completion_probability_classifier",
+        description="Name of the MLflow experiment for logging.",
+    )
+    XGB_PARAM_GRID: dict[str, Any] = Field(
+        default={
+            "n_estimators": [200, 400, 600],
+            "learning_rate": [0.05, 0.1],
+            "max_depth": [4, 5, 6],
+            "subsample": [0.8, 1.0],
+            "colsample_bytree": [0.8, 1.0],
+            "reg_lambda": [1.0, 2.0],
+        },
+        description="Grid of XGBoost hyperparameters for training.",
+    )
+    XGB_RANDOM_STATE: int = Field(
+        default=42, description="Random state for model reproducibility."
     )
 
     def get_tracking_data_path(
