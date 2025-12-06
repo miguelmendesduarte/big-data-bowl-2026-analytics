@@ -42,6 +42,15 @@ class Settings(BaseSettings):
     TRAIN_DATA_FILE: Path = TRAINING_DATA_DIR / "train.csv"
     TEST_DATA_FILE: Path = TRAINING_DATA_DIR / "test.csv"
     INFERENCE_DATA_FILE: Path = PROCESSED_DATA_DIR / "inference" / "inference.csv"
+    INFERENCE_RESULTS_FILE: Path = PROCESSED_DATA_DIR / "inference" / "results.csv"
+    MODEL_PATH: Path = (
+        BASE_DIR
+        / "mlruns"
+        / "1"
+        / "models"
+        / "m-edd3b7ff1c054373a1e46a3146bfe5ab"
+        / "artifacts"
+    )
 
     # Templates
     TRACKING_DATA_BEFORE_THROW_TEMPLATE: ClassVar[str] = "input_2023_w{week:02d}.csv"
