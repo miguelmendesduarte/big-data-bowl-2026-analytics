@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     TEST_DATA_FILE: Path = TRAINING_DATA_DIR / "test.csv"
     INFERENCE_DATA_FILE: Path = PROCESSED_DATA_DIR / "inference" / "inference.csv"
     INFERENCE_RESULTS_FILE: Path = PROCESSED_DATA_DIR / "inference" / "results.csv"
+    SCORES_FILE: Path = DATA_DIR / "scores.csv"
     MODEL_PATH: Path = (
         BASE_DIR
         / "mlruns"
