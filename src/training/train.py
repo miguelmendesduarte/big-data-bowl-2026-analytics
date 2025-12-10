@@ -4,6 +4,9 @@ import itertools
 import tempfile
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import mlflow
 import mlflow.sklearn
@@ -27,15 +30,12 @@ FEATURES_TO_EXCLUDE: list[str] = [
     "defender_id",
     "target",
     # Based on permutation importance analysis
-    # "rec_running_away",
-    # "def_back_to_rec",
-    # "def_orientation_error",
-    # "air_yards",
+    "separation_sq",
+    "air_yards",
+    "closing_per_yard",
+    "def_back_to_rec",
     # "qb_speed",
-    # "closing_speed",
-    # "closing_per_yard",
-    # "pressure_dist",
-    # "qb_to_rec_dist",
+    # "rec_running_away"
 ]
 TARGET_COLUMN: str = "target"
 
@@ -73,7 +73,7 @@ def log_feature_importance(
         Path: Path to the saved feature importance plot.
     """
     result = permutation_importance(
-        model, X_test, y_test, n_repeats=10, random_state=42
+        model, X_test, y_test, n_repeats=10, random_state=42, scoring="neg_log_loss"
     )
 
     importances = result.importances_mean
