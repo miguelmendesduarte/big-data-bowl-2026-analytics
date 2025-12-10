@@ -49,7 +49,7 @@ class Settings(BaseSettings):
         / "mlruns"
         / "1"
         / "models"
-        / "m-edd3b7ff1c054373a1e46a3146bfe5ab"
+        / "m-26b7e17f7e7c4487af659cccf1da4806"  # Model ID from MLflow
         / "artifacts"
     )
 
@@ -109,9 +109,9 @@ class Settings(BaseSettings):
     )
     XGB_PARAM_GRID: dict[str, Any] = Field(
         default={
-            "n_estimators": [200, 400, 600],
+            "n_estimators": [200, 400],
             "learning_rate": [0.05, 0.1],
-            "max_depth": [4, 5, 6],
+            "max_depth": [4, 5],
             "subsample": [0.8, 1.0],
             "colsample_bytree": [0.8, 1.0],
             "reg_lambda": [1.0, 2.0],
