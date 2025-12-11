@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import typer
 from loguru import logger
-from matplotlib.animation import PillowWriter
+from matplotlib.animation import FFMpegWriter
 from matplotlib.artist import Artist
 from matplotlib.patches import Ellipse
 
@@ -341,8 +341,8 @@ class Play:
 
         if self.save:
             ani.save(
-                f"{self.game_id}_{self.play_id}.gif",
-                writer=PillowWriter(
+                f"{self.game_id}_{self.play_id}_raw.gif",
+                writer=FFMpegWriter(
                     fps=self._settings.FRAME_RATE, bitrate=self._settings.BITRATE
                 ),
             )
