@@ -175,6 +175,7 @@ cython_debug/
 
 # Large data files
 data/**/*.csv
+assets/videos/
 
 # MLflow artifacts
 mlruns/
