@@ -2,6 +2,7 @@
 
 import pandas as pd
 import ruptures as rpt  # type: ignore[import-untyped]
+import numpy as np
 
 
 def get_last_frame(df: pd.DataFrame) -> pd.DataFrame:
@@ -37,34 +38,39 @@ def detect_change_point(df: pd.DataFrame, column: str) -> int:
     if len(change_points) <= 1:
         return len(signal)
 
-    # Select the largest change (most significant jump)
     change_magnitudes = []
-    for i in range(1, len(change_points)):
-        # Ensure the segments are non-empty
-        first_segment = signal[change_points[i - 1] : change_points[i]]
-        second_segment = signal[
-            change_points[i] : change_points[i + 1]
-            if i + 1 < len(change_points)
-            else len(signal)
-        ]
-
-        first_segment = pd.Series(first_segment).to_numpy()
-        second_segment = pd.Series(second_segment).to_numpy()
+    
+    # Iterate through the indices of the 'actual' change points (i.e., 
+    # everything except the last element, which is the signal length).
+    # i will go from 0 up to len(change_points) - 2.
+    for i in range(len(change_points) - 1):
+        
+        # The change point index being measured is change_points[i]
+        cp_index = change_points[i]
+        
+        # Segment BEFORE the change point (starts from previous change point or 0)
+        start_prev_segment = change_points[i - 1] if i > 0 else 0
+        first_segment = signal[start_prev_segment : cp_index]
+        
+        # Segment AFTER the change point (ends at the next point, which is change_points[i + 1])
+        # This is safe because the loop stops one iteration early.
+        second_segment = signal[cp_index : change_points[i + 1]]
 
         # Only calculate the means if the segments have data
-        if len(first_segment) > 0 and len(second_segment) > 0:
-            mean_first = first_segment.mean()
-            mean_second = second_segment.mean()
-            magnitude = abs(mean_second - mean_first)
+        if first_segment.size > 0 and second_segment.size > 0: # Use .size for NumPy array check
+            magnitude = abs(second_segment.mean() - first_segment.mean())
             change_magnitudes.append(magnitude)
         else:
-            # If segments are empty, handle as needed
             change_magnitudes.append(0)
 
     # Pick the change point with the largest magnitude
     if change_magnitudes:
-        most_significant_change_idx = change_magnitudes.index(max(change_magnitudes))
-        return change_points[most_significant_change_idx + 1]
+        # np.argmax is safer than .index(max()) for floats
+        most_significant_change_idx = np.argmax(change_magnitudes)
+        
+        # The index (0, 1, 2, ...) maps directly to the change_points list element 
+        # that ISN'T the signal length.
+        return change_points[most_significant_change_idx] # Return the actual index in the signal
 
     return len(signal)
 
