@@ -37,6 +37,9 @@ dev = [
     "pytest-xdist>=3.8.0",
     "ruff>=0.12.7",
 ]
+notebooks = [
+    "plottable>=0.1.5",
+]
 
 [tool.ruff]
 line-length = 88

@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     FRAME_RATE: int = Field(
         default=10, description="Frame rate for animations in frames per second."
     )
-    BITRATE: int = Field(default=1800, description="Bitrate for video exports in kbps.")
+    BITRATE: int = Field(default=2500, description="Bitrate for video exports in kbps.")
     FIELD_LENGTH: float = Field(
         default=120, description="Length of the field in yards."
     )

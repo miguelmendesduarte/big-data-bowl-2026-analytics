@@ -99,6 +99,9 @@ dev = [
     { name = "pytest-xdist" },
     { name = "ruff" },
 ]
+notebooks = [
+    { name = "plottable" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -126,6 +129,7 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "ruff", specifier = ">=0.12.7" },
 ]
+notebooks = [{ name = "plottable", specifier = ">=0.1.5" }]
 
 [[package]]
 name = "blinker"
@@ -1678,6 +1682,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fe/8b/3c73abc9c759ecd3f1f7ceff6685840859e8070c4d947c93fae71f6a0bf2/platformdirs-4.3.8.tar.gz", hash = "sha256:3d512d96e16bcb959a814c9f348431070822a6496326a4be0911c40b5a74c2bc", size = 21362, upload-time = "2025-05-07T22:47:42.121Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fe/39/979e8e21520d4e47a0bbe349e2713c0aac6f3d853d0e5b34d76206c439aa/platformdirs-4.3.8-py3-none-any.whl", hash = "sha256:ff7059bb7eb1179e2685604f4aaf157cfd9535242bd23742eadc3c13542139b4", size = 18567, upload-time = "2025-05-07T22:47:40.376Z" },
+]
+
+[[package]]
+name = "plottable"
+version = "0.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5a/3e/15137d0dde8eb6721d2a42b8d45359f37c2fc76dd688903d04c6bdbf43c7/plottable-0.1.5.tar.gz", hash = "sha256:235d762a31c82129dc5bf74205c103a14b1e4393d0f921cc0231be5de884041d", size = 21616, upload-time = "2022-11-13T09:31:08.981Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/cf/23ea4b6f9460312604ed67b74e7db3e702fcaefc04743224ef1cdda663f4/plottable-0.1.5-py3-none-any.whl", hash = "sha256:5c5d1128d90065fc940e5c8445b2603d253909745bb0cee0c9828651b812441c", size = 24734, upload-time = "2022-11-13T09:31:01.102Z" },
 ]
 
 [[package]]
